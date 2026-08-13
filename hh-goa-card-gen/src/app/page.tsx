@@ -1,234 +1,981 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+
+type Point = {
+  x: number;
+  y: number;
+};
 
 export default function Home() {
-  const [name, setName] = useState('Alex Rivera');
-  const [role, setRole] = useState('Full Stack Developer');
-  const [builderTitle, setBuilderTitle] = useState('Goa Trailblazer');
+  const [name, setName] = useState('ANONYMOUS');
+  const [role, setRole] = useState('FULLSTACK ENGINEER');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [previewReady, setPreviewReady] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Convert uploaded image (including HEIC)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  /*
+   * ---------------------------------------------------------
+   * IMAGE UPLOAD
+   * ---------------------------------------------------------
+   */
+
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
-    if (file.name.toLowerCase().endsWith('.heic')) {
-      const heic2any = (await import('heic2any')).default;
-      const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
-      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-      setImageSrc(URL.createObjectURL(blob));
-    } else {
-      setImageSrc(URL.createObjectURL(file));
+    try {
+      let src: string;
+
+      if (file.name.toLowerCase().endsWith('.heic')) {
+        const heic2any = (await import('heic2any')).default;
+
+        const converted = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+        });
+
+        const blob = Array.isArray(converted)
+          ? converted[0]
+          : converted;
+
+        src = URL.createObjectURL(blob);
+      } else {
+        src = URL.createObjectURL(file);
+      }
+
+      setImageSrc(src);
+      setPreviewReady(true);
+    } catch (error) {
+      console.error(error);
+
+      window.alert(
+        'Could not read that image. Please choose a PNG or JPG photo.'
+      );
     }
   };
 
-  // Render the badge directly onto the Canvas
+  /*
+   * ---------------------------------------------------------
+   * PALM TREE DRAWING
+   * ---------------------------------------------------------
+   */
+
+  const drawPalm = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    scale = 1
+  ) => {
+    ctx.save();
+
+    ctx.translate(x, y);
+
+    ctx.strokeStyle = '#167b52';
+    ctx.lineWidth = 3 * scale;
+
+    ctx.beginPath();
+
+    ctx.moveTo(0, 0);
+
+    ctx.quadraticCurveTo(
+      3 * scale,
+      -30 * scale,
+      8 * scale,
+      -70 * scale
+    );
+
+    ctx.stroke();
+
+    ctx.fillStyle = '#17865a';
+
+    const leaves: Point[] = [
+      { x: 8, y: -70 },
+      { x: 35, y: -83 },
+      { x: 43, y: -62 },
+      { x: 25, y: -53 },
+      { x: -12, y: -84 },
+      { x: -20, y: -62 },
+      { x: 2, y: -90 },
+    ];
+
+    leaves.forEach(({ x: leafX, y: leafY }, index) => {
+      ctx.beginPath();
+
+      ctx.ellipse(
+        leafX * scale,
+        leafY * scale,
+        (index % 2 ? 28 : 34) * scale,
+        8 * scale,
+        (index - 3) * 0.18,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+    });
+
+    ctx.restore();
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * CANVAS BADGE
+   * ---------------------------------------------------------
+   */
+
   const drawCanvas = () => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
+
     if (!ctx) return;
 
-    // Card Dimensions (Event Badge aspect ratio)
-    canvas.width = 600;
-    canvas.height = 800;
+    const width = 520;
+    const height = 760;
 
-    // 1. Background Gradient
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, 800);
-    bgGradient.addColorStop(0, '#0f172a');
-    bgGradient.addColorStop(1, '#1e1b4b');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, 600, 800);
+    canvas.width = width;
+    canvas.height = height;
 
-    // 2. Brand Accent Bar
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(0, 0, 600, 12);
+    ctx.clearRect(0, 0, width, height);
 
-    // 3. Branding Header Text
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px sans-serif';
+    /*
+     * -------------------------------------------------------
+     * LANYARD
+     * -------------------------------------------------------
+     */
+
+    ctx.fillStyle = '#050505';
+
+    ctx.fillRect(
+      224,
+      0,
+      72,
+      235
+    );
+
+    /*
+     * Lanyard text
+     */
+
+    ctx.fillStyle = '#ffe52b';
+
+    ctx.font =
+      '900 22px Arial Black, Arial, sans-serif';
+
     ctx.textAlign = 'center';
-    ctx.fillText('HH GOA 2026', 300, 65);
 
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = '600 16px sans-serif';
-    ctx.fillText('BUILDER PASS', 300, 95);
+    ctx.save();
 
-    // 4. Draw Uploaded Photo Box (Auto-centered crop)
-    const boxX = 150;
-    const boxY = 130;
-    const boxWidth = 300;
-    const boxHeight = 300;
+    ctx.translate(260, 116);
 
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+    ctx.rotate(-Math.PI / 2);
+
+    ctx.fillText(
+      'HH GOA',
+      0,
+      0
+    );
+
+    ctx.restore();
+
+    /*
+     * Metal clip
+     */
+
+    ctx.strokeStyle = '#4a4a4a';
+
+    ctx.lineWidth = 9;
+
+    ctx.beginPath();
+
+    ctx.arc(
+      260,
+      238,
+      23,
+      0,
+      Math.PI
+    );
+
+    ctx.stroke();
+
+    /*
+     * Connecting cord
+     */
+
+    ctx.strokeStyle = '#161616';
+
+    ctx.lineWidth = 6;
+
+    ctx.beginPath();
+
+    ctx.moveTo(260, 238);
+
+    ctx.bezierCurveTo(
+      247,
+      265,
+      277,
+      276,
+      260,
+      304
+    );
+
+    ctx.stroke();
+
+    /*
+     * -------------------------------------------------------
+     * BADGE
+     * -------------------------------------------------------
+     */
+
+    const badgeX = 95;
+    const badgeY = 300;
+
+    const badgeWidth = 330;
+    const badgeHeight = 560;
+
+    /*
+     * Badge shadow
+     */
+
+    ctx.save();
+
+    ctx.shadowColor = 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+
+    ctx.fillStyle = '#005a3a';
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      badgeX,
+      badgeY,
+      badgeWidth,
+      badgeHeight,
+      18
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+
+    /*
+     * -------------------------------------------------------
+     * BADGE ILLUSTRATION
+     * -------------------------------------------------------
+     */
+
+    ctx.save();
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      badgeX,
+      badgeY,
+      badgeWidth,
+      365,
+      18
+    );
+
+    ctx.clip();
+
+    /*
+     * Green sky
+     */
+
+    ctx.fillStyle = '#006943';
+
+    ctx.fillRect(
+      badgeX,
+      badgeY,
+      badgeWidth,
+      365
+    );
+
+    /*
+     * Sun
+     */
+
+    ctx.fillStyle = '#f6d43d';
+
+    ctx.beginPath();
+
+    ctx.arc(
+      260,
+      445,
+      49,
+      Math.PI,
+      0
+    );
+
+    ctx.fill();
+
+    /*
+     * Sun rays
+     */
+
+    ctx.strokeStyle = '#e5c62f';
+
+    ctx.lineWidth = 3;
+
+    for (let i = -4; i <= 4; i++) {
+      ctx.beginPath();
+
+      ctx.moveTo(
+        260 + i * 17,
+        405
+      );
+
+      ctx.lineTo(
+        260 + i * 25,
+        382
+      );
+
+      ctx.stroke();
+    }
+
+    /*
+     * Ocean
+     */
+
+    ctx.fillStyle = '#00583b';
+
+    ctx.fillRect(
+      badgeX,
+      466,
+      badgeWidth,
+      60
+    );
+
+    /*
+     * Beach
+     */
+
+    ctx.fillStyle = '#f5f3ea';
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      badgeX,
+      505
+    );
+
+    ctx.quadraticCurveTo(
+      150,
+      486,
+      205,
+      514
+    );
+
+    ctx.quadraticCurveTo(
+      270,
+      540,
+      330,
+      511
+    );
+
+    ctx.quadraticCurveTo(
+      375,
+      489,
+      425,
+      515
+    );
+
+    ctx.lineTo(
+      425,
+      680
+    );
+
+    ctx.lineTo(
+      badgeX,
+      680
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    /*
+     * Palm trees
+     */
+
+    drawPalm(
+      ctx,
+      395,
+      520,
+      0.82
+    );
+
+    drawPalm(
+      ctx,
+      420,
+      570,
+      0.62
+    );
+
+    drawPalm(
+      ctx,
+      112,
+      574,
+      0.58
+    );
+
+    /*
+     * Small beach hut - left
+     */
+
+    ctx.fillStyle = '#f2f0e6';
+
+    ctx.fillRect(
+      115,
+      606,
+      72,
+      44
+    );
+
+    ctx.fillStyle = '#1a8b5a';
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      105,
+      606
+    );
+
+    ctx.lineTo(
+      150,
+      578
+    );
+
+    ctx.lineTo(
+      198,
+      606
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    ctx.fillStyle = '#f6d43d';
+
+    ctx.fillRect(
+      139,
+      625,
+      16,
+      25
+    );
+
+    /*
+     * Small beach hut - right
+     */
+
+    ctx.fillStyle = '#f2f0e6';
+
+    ctx.fillRect(
+      338,
+      605,
+      55,
+      43
+    );
+
+    ctx.fillStyle = '#16865a';
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      330,
+      605
+    );
+
+    ctx.lineTo(
+      366,
+      580
+    );
+
+    ctx.lineTo(
+      402,
+      605
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    ctx.fillStyle = '#075c3f';
+
+    ctx.fillRect(
+      358,
+      620,
+      13,
+      28
+    );
+
+    ctx.restore();
+
+    /*
+     * -------------------------------------------------------
+     * HACKER HOUSE LOGO
+     * -------------------------------------------------------
+     */
+
+    ctx.fillStyle = '#f4d13c';
+
+    ctx.font =
+      '900 43px Georgia, serif';
+
+    ctx.textAlign = 'center';
+
+    ctx.fillText(
+      'HACKER',
+      260,
+      348
+    );
+
+    ctx.fillText(
+      'HOUSE',
+      260,
+      388
+    );
+
+    /*
+     * Goa text
+     */
+
+    ctx.fillStyle = '#ef146f';
+
+    ctx.font =
+      '900 34px Arial Black, Arial, sans-serif';
+
+    ctx.fillText(
+      'गोवा',
+      260,
+      381
+    );
+
+    /*
+     * -------------------------------------------------------
+     * PROFILE PHOTO
+     * -------------------------------------------------------
+     */
+
+    const photoX = 260;
+    const photoY = 506;
+    const photoRadius = 57;
+
+    ctx.save();
+
+    ctx.beginPath();
+
+    ctx.arc(
+      photoX,
+      photoY,
+      photoRadius,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.clip();
+
+    /*
+     * Default photo background
+     */
+
+    ctx.fillStyle = '#f1f1f1';
+
+    ctx.fill();
+
+    /*
+     * Uploaded image
+     */
 
     if (imageSrc) {
       const img = new Image();
-      img.src = imageSrc;
+
       img.onload = () => {
-        const aspect = img.width / img.height;
-        let dw = boxWidth;
-        let dh = boxHeight;
-        let dx = boxX;
-        let dy = boxY;
+        const size = Math.max(
+          img.width,
+          img.height
+        );
 
-        if (aspect > 1) {
-          dh = boxHeight;
-          dw = boxHeight * aspect;
-          dx = boxX - (dw - boxWidth) / 2;
-        } else {
-          dw = boxWidth;
-          dh = boxWidth / aspect;
-          dy = boxY - (dh - boxHeight) / 2;
-        }
+        const scale =
+          (photoRadius * 2) / size;
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(boxX, boxY, boxWidth, boxHeight);
-        ctx.clip();
-        ctx.drawImage(img, dx, dy, dw, dh);
+        const drawWidth =
+          img.width * scale;
+
+        const drawHeight =
+          img.height * scale;
+
+        ctx.drawImage(
+          img,
+          photoX - drawWidth / 2,
+          photoY - drawHeight / 2,
+          drawWidth,
+          drawHeight
+        );
+
         ctx.restore();
 
-        // Border around photo
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+        /*
+         * Photo border
+         */
 
-        renderTextDetails(ctx);
+        ctx.strokeStyle = '#111';
+
+        ctx.lineWidth = 4;
+
+        ctx.beginPath();
+
+        ctx.arc(
+          photoX,
+          photoY,
+          photoRadius,
+          0,
+          Math.PI * 2
+        );
+
+        ctx.stroke();
+
+        renderDetails(
+          ctx,
+          photoY + photoRadius + 25
+        );
       };
+
+      img.src = imageSrc;
     } else {
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '16px sans-serif';
-      ctx.fillText('No Image Uploaded', 300, 280);
-      renderTextDetails(ctx);
+      ctx.restore();
+
+      ctx.strokeStyle = '#111';
+
+      ctx.lineWidth = 4;
+
+      ctx.beginPath();
+
+      ctx.arc(
+        photoX,
+        photoY,
+        photoRadius,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.stroke();
+
+      renderDetails(
+        ctx,
+        photoY + photoRadius + 25
+      );
     }
   };
 
-  const renderTextDetails = (ctx: CanvasRenderingContext2D) => {
-    // 5. User Details
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px sans-serif';
+  /*
+   * ---------------------------------------------------------
+   * NAME + ROLE ON BADGE
+   * ---------------------------------------------------------
+   */
+
+  const renderDetails = (
+    ctx: CanvasRenderingContext2D,
+    startY: number
+  ) => {
+    ctx.fillStyle = '#111';
+
     ctx.textAlign = 'center';
-    ctx.fillText(name || 'Your Name', 300, 480);
 
-    ctx.fillStyle = '#38bdf8';
-    ctx.font = '500 22px sans-serif';
-    ctx.fillText(role || 'Role / Stack', 300, 520);
+    /*
+     * Name
+     */
 
-    // Title Tag Box
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
-    ctx.fillRect(150, 560, 300, 50);
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(150, 560, 300, 50);
+    ctx.font =
+      '900 20px Arial Black, Arial, sans-serif';
 
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(builderTitle || 'Builder Title', 300, 592);
+    ctx.fillText(
+      (
+        name || 'ANONYMOUS'
+      )
+        .toUpperCase()
+        .slice(0, 22),
+      260,
+      startY
+    );
 
-    // Footer Tagline
-    ctx.fillStyle = '#64748b';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('#FrameInGoa • HH Goa 2026', 300, 740);
+    /*
+     * Role
+     */
+
+    ctx.font =
+      'italic 700 14px Arial, sans-serif';
+
+    ctx.fillText(
+      (
+        role || 'FULLSTACK ENGINEER'
+      )
+        .toUpperCase()
+        .slice(0, 26),
+      260,
+      startY + 25
+    );
   };
 
-  useEffect(() => {
-    drawCanvas();
-  }, [name, role, builderTitle, imageSrc]);
+  /*
+   * ---------------------------------------------------------
+   * UPDATE PREVIEW
+   * ---------------------------------------------------------
+   */
 
-  // Download Handler
+  useEffect(() => {
+    if (previewReady) {
+      drawCanvas();
+    }
+  }, [
+    name,
+    role,
+    imageSrc,
+    previewReady,
+  ]);
+
+  /*
+   * ---------------------------------------------------------
+   * GENERATE
+   * ---------------------------------------------------------
+   */
+
+  const handleGenerate = () => {
+    setPreviewReady(false);
+
+    requestAnimationFrame(() => {
+      setPreviewReady(true);
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * DOWNLOAD
+   * ---------------------------------------------------------
+   */
+
   const handleDownload = () => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = `${name.replace(/\s+/g, '_')}_HH_Goa_Pass.png`;
-    link.href = canvas.toDataURL('image/png');
+
+    drawCanvas();
+
+    const link =
+      document.createElement('a');
+
+    link.download =
+      `${(
+        name || 'ANONYMOUS'
+      ).replace(
+        /\s+/g,
+        '_'
+      )}_HH_Goa_2026.png`;
+
+    link.href =
+      canvas.toDataURL('image/png');
+
     link.click();
   };
 
-  // Share to X Handler
-  const handleShareToX = () => {
-    const tweetText = encodeURIComponent(
-      `Excited to build at HH Goa 2026! Here is my official Builder Pass. 🚀\n\n#FrameInGoa`
+  /*
+   * ---------------------------------------------------------
+   * SHARE TO X
+   * ---------------------------------------------------------
+   */
+
+  const handleShare = () => {
+    /*
+     * Download image first
+     */
+
+    handleDownload();
+
+    /*
+     * Open X
+     */
+
+    const tweetText =
+      encodeURIComponent(
+        `Excited to build at Hacker House Goa 2026! Here is my official HH Goa ID. 🚀\n\n#FrameInGoa #HHGoa`
+      );
+
+    window.open(
+      `https://twitter.com/intent/tweet?text=${tweetText}`,
+      '_blank',
+      'noopener,noreferrer'
     );
-    window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
   };
 
+  /*
+   * ---------------------------------------------------------
+   * UI
+   * ---------------------------------------------------------
+   */
+
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-6 flex flex-col items-center justify-center">
-      <h1 className="text-3xl font-bold mb-6 text-amber-500">HH Goa 2026 Badge Generator</h1>
+    <main className="hh-page">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl bg-slate-900 p-6 rounded-xl border border-slate-800">
-        {/* Controls */}
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Upload Profile Photo</label>
-            <input
-              type="file"
-              accept="image/png, image/jpeg, image/heic"
-              onChange={handleImageUpload}
-              className="w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-amber-500 file:text-black font-semibold hover:file:bg-amber-400 cursor-pointer"
-            />
-          </div>
+      {/* =====================================================
+          LEFT CONTROL PANEL
+          ===================================================== */}
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-2.5 rounded bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+      <section className="control-panel">
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Role / Stack</label>
-            <input
-              type="text"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full p-2.5 rounded bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+        <div className="intro">
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Builder Title</label>
-            <input
-              type="text"
-              value={builderTitle}
-              onChange={(e) => setBuilderTitle(e.target.value)}
-              className="w-full p-2.5 rounded bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+          <h1>
+            <span>HH</span> GOA ID
+          </h1>
 
-          <div className="flex gap-4 mt-4">
-            <button
-              onClick={handleDownload}
-              className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 rounded transition"
-            >
-              Download PNG
-            </button>
-            <button
-              onClick={handleShareToX}
-              className="flex-1 bg-sky-500 hover:bg-sky-400 text-black font-bold py-3 rounded transition"
-            >
-              Share to X
-            </button>
-          </div>
+          <p>
+            Generate your official builder badge for Hacker
+            <br />
+            House Goa 2026.
+          </p>
+
         </div>
 
-        {/* Canvas Display */}
-        <div className="flex justify-center items-center">
+        <div className="divider" />
+
+        {/* PROFILE PHOTO */}
+
+        <div className="field-group upload-group">
+
+          <label>
+            PROFILE PHOTO
+          </label>
+
+          <label
+            className="upload-box"
+            htmlFor="profile-photo"
+          >
+
+            <span className="upload-icon">
+              ↥
+            </span>
+
+            <span>
+              Click to upload photo
+            </span>
+
+            <input
+              id="profile-photo"
+              type="file"
+              accept="image/png,image/jpeg,image/heic"
+              onChange={handleImageUpload}
+            />
+
+          </label>
+
+        </div>
+
+        {/* NAME */}
+
+        <div className="field-group">
+
+          <label htmlFor="name">
+            YOUR NAME
+          </label>
+
+          <input
+            id="name"
+            value={name}
+            onChange={(e) =>
+              setName(e.target.value)
+            }
+          />
+
+        </div>
+
+        {/* ROLE */}
+
+        <div className="field-group">
+
+          <label htmlFor="role">
+            BUILDER ROLE
+          </label>
+
+          <input
+            id="role"
+            value={role}
+            onChange={(e) =>
+              setRole(e.target.value)
+            }
+          />
+
+        </div>
+
+        {/* GENERATE */}
+
+        <button
+          className="generate-button"
+          onClick={handleGenerate}
+        >
+          GENERATE &amp; PREVIEW
+        </button>
+
+        {/* ACTION BUTTONS */}
+
+        <div className="action-row">
+
+          <button
+            className="download-button"
+            onClick={handleDownload}
+          >
+            <span>⇩</span>
+            DOWNLOAD
+          </button>
+
+          <button
+            className="share-button"
+            onClick={handleShare}
+          >
+            <span>♧</span>
+            SHARE
+          </button>
+
+        </div>
+
+        {/* SHARE NOTE */}
+
+        <div className="share-note">
+
+          Clicking share will download the image and open X.
+          Just paste the
+          <br />
+          image into the tweet!
+
+        </div>
+
+      </section>
+
+      {/* =====================================================
+          RIGHT PREVIEW PANEL
+          ===================================================== */}
+
+      <section className="preview-panel">
+
+        <div className="preview-canvas-wrap">
+
           <canvas
             ref={canvasRef}
-            className="w-full max-w-[300px] sm:max-w-[350px] rounded-lg shadow-2xl border border-slate-800"
+            className="badge-canvas"
+            aria-label="HH Goa ID badge preview"
           />
+
         </div>
-      </div>
+
+      </section>
+
     </main>
   );
 }
